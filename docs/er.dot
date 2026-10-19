@@ -1,0 +1,40 @@
+digraph ER {
+  graph [rankdir=LR, fontname="Helvetica", nodesep=0.5, ranksep=0.9, pad=0.3];
+  node  [shape=plaintext, fontname="Helvetica", fontsize=10];
+  edge  [fontname="Helvetica", fontsize=9, color="#475467", arrowhead=crow, arrowtail=tee, dir=both];
+
+  suppliers [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>suppliers</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK supplier_id</B></TD></TR><TR><TD ALIGN="LEFT">name (UQ)</TD></TR><TR><TD ALIGN="LEFT">contact_email</TD></TR><TR><TD ALIGN="LEFT">city</TD></TR><TR><TD ALIGN="LEFT">lead_time_days</TD></TR></TABLE>>];
+  users [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>users</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK user_id</B></TD></TR><TR><TD ALIGN="LEFT">name</TD></TR><TR><TD ALIGN="LEFT">email (UQ)</TD></TR><TR><TD ALIGN="LEFT">password_hash</TD></TR><TR><TD ALIGN="LEFT">role {staff|buyer}</TD></TR><TR><TD ALIGN="LEFT">FK supplier_id (null)</TD></TR></TABLE>>];
+  categories [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>categories</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK category_id</B></TD></TR><TR><TD ALIGN="LEFT">name (UQ)</TD></TR></TABLE>>];
+  parts [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#067647"><FONT COLOR="white"><B>parts</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK part_id</B></TD></TR><TR><TD ALIGN="LEFT">FK supplier_id</TD></TR><TR><TD ALIGN="LEFT">FK category_id</TD></TR><TR><TD ALIGN="LEFT">brand, part_number</TD></TR><TR><TD ALIGN="LEFT">name, description</TD></TR><TR><TD ALIGN="LEFT">specs JSONB</TD></TR><TR><TD ALIGN="LEFT"><B>embedding vector(384)</B></TD></TR><TR><TD ALIGN="LEFT">search_tsv (generated)</TD></TR><TR><TD ALIGN="LEFT">UQ(supplier_id, part_number)</TD></TR></TABLE>>];
+  vehicles [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>vehicles</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK vehicle_id</B></TD></TR><TR><TD ALIGN="LEFT">make, model</TD></TR><TR><TD ALIGN="LEFT">year, engine</TD></TR><TR><TD ALIGN="LEFT">UQ(make,model,year,engine)</TD></TR></TABLE>>];
+  part_compatibility [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#fffaeb"><TR><TD BGCOLOR="#b54708"><FONT COLOR="white"><B>part_compatibility (M:N)</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK,FK part_id</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK,FK vehicle_id</B></TD></TR><TR><TD ALIGN="LEFT">fitment_notes</TD></TR></TABLE>>];
+  inventory [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>inventory (1:1)</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK,FK part_id</B></TD></TR><TR><TD ALIGN="LEFT">quantity &gt;= 0</TD></TR><TR><TD ALIGN="LEFT">reorder_threshold</TD></TR><TR><TD ALIGN="LEFT">updated_at</TD></TR></TABLE>>];
+  price_tiers [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>price_tiers</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK tier_id</B></TD></TR><TR><TD ALIGN="LEFT">FK part_id</TD></TR><TR><TD ALIGN="LEFT">min_qty &gt;= 1</TD></TR><TR><TD ALIGN="LEFT">unit_price &gt; 0</TD></TR><TR><TD ALIGN="LEFT">UQ(part_id, min_qty)</TD></TR></TABLE>>];
+  stock_alerts [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#b42318"><FONT COLOR="white"><B>stock_alerts (trigger)</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK alert_id</B></TD></TR><TR><TD ALIGN="LEFT">FK part_id</TD></TR><TR><TD ALIGN="LEFT">quantity_at_alert, message</TD></TR><TR><TD ALIGN="LEFT">resolved, created_at</TD></TR></TABLE>>];
+  orders [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>orders</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK order_id</B></TD></TR><TR><TD ALIGN="LEFT">FK buyer_id</TD></TR><TR><TD ALIGN="LEFT">status, total_amount</TD></TR><TR><TD ALIGN="LEFT">created_at</TD></TR></TABLE>>];
+  order_items [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f8fafc"><TR><TD BGCOLOR="#0b5fff"><FONT COLOR="white"><B>order_items</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"><B>PK order_item_id</B></TD></TR><TR><TD ALIGN="LEFT">FK order_id</TD></TR><TR><TD ALIGN="LEFT">FK part_id</TD></TR><TR><TD ALIGN="LEFT">quantity &gt; 0, unit_price &gt; 0</TD></TR><TR><TD ALIGN="LEFT">UQ(order_id, part_id)</TD></TR></TABLE>>];
+
+  suppliers -> parts [label="supplies (1:N)"];
+  suppliers -> users [label="employs staff (1:N)"];
+  categories -> parts [label="classifies (1:N)"];
+  parts -> part_compatibility [label="fits (1:N)"];
+  vehicles -> part_compatibility [label="fitted by (1:N)"];
+  parts -> inventory [label="has stock (1:1)", arrowhead=tee];
+  parts -> price_tiers [label="priced by (1:N)"];
+  parts -> stock_alerts [label="raises (1:N)"];
+  users -> orders [label="places (1:N)"];
+  orders -> order_items [label="contains (1:N)"];
+  parts -> order_items [label="ordered as (1:N)"];
+}

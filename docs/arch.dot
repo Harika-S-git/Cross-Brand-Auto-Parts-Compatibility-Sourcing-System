@@ -1,0 +1,22 @@
+digraph A {
+  graph [rankdir=TB, fontname="Helvetica", nodesep=0.5, ranksep=0.6, pad=0.3];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef4ff", color="#0b5fff", margin="0.18,0.1"];
+  edge  [fontname="Helvetica", fontsize=9, color="#475467"];
+  user [label="Buyer / Mechanic   |   Distributor Staff\n(browser)", fillcolor="#ffffff"];
+  subgraph cluster_next { label="Next.js 14 application (Node server)"; style="rounded"; color="#98a2b3"; fontname="Helvetica";
+    ui  [label="React UI (App Router)\nsearch · cart · orders · staff dashboard"];
+    api [label="Route Handlers  /api/*\nJWT session cookie · role guards · input validation"];
+    emb [label="Embedding service (lib/embed.js)\nall-MiniLM-L6-v2 · 384-d · normalised", fillcolor="#e7f6ec", color="#067647"];
+    parser [label="Query parser\nyear · amperage · vehicle", fillcolor="#e7f6ec", color="#067647"];
+  }
+  subgraph cluster_pg { label="PostgreSQL 16 + pgvector"; style="rounded"; color="#98a2b3"; fontname="Helvetica";
+    rel [label="Relational tables\nsuppliers · parts · vehicles · compatibility\ninventory · price_tiers · orders · users"];
+    vec [label="parts.embedding  vector(384)\nHNSW index · cosine distance (<=>)", fillcolor="#e7f6ec", color="#067647"];
+    prog [label="Stored function rank_matches()\nTriggers · Views · Transactions · GIN full-text", fillcolor="#fff4e5", color="#b54708"];
+  }
+  env [label=".env.local\nDATABASE_URL · JWT_SECRET", shape=note, fillcolor="#fdecea", color="#b42318"];
+  user -> ui [label="HTTPS"]; ui -> api [label="fetch JSON"];
+  api -> parser; api -> emb [label="query text"];
+  api -> prog [label="SQL (pg, parameterised)"];
+  prog -> rel; prog -> vec; env -> api [style=dashed, label="config"];
+}
