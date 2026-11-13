@@ -3,9 +3,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import { pgConfig } from '../lib/dbConfig.js';
 import { embed, toPgVector } from '../lib/embed.js';
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new pg.Pool(pgConfig());
 test.after(() => pool.end());
 const rejects = (sql, params, code) =>
   assert.rejects(pool.query(sql, params), (e) => { assert.equal(e.code, code, e.message); return true; });

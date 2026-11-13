@@ -16,8 +16,11 @@ export default function Staff() {
   const [filter, setFilter] = useState('');
 
   const load = useCallback(async () => {
-    const [a, b, c, d, e] = await Promise.all(['/api/staff/inventory', '/api/staff/alerts', '/api/staff/reports', '/api/orders', '/api/meta'].map((u) => fetch(u).then((r) => r.json())));
-    setParts(a.parts || []); setAlerts(b.alerts || []); setRep(c); setOrders(d.orders || []); setMeta(e);
+    const [a, b, c, d, e] = await Promise.all(['/api/staff/inventory', '/api/staff/alerts', '/api/staff/reports', '/api/orders', '/api/meta'].map((u) => fetch(u).then((r) => r.json()).catch(() => ({ error: 'Cannot reach the server' }))));
+    setParts(a.parts || []); setAlerts(b.alerts || []); setRep(c.totals ? c : null); setOrders(d.orders || []);
+    setMeta({ vehicles: e.vehicles || [], categories: e.categories || [] });
+    const firstErr = [a, b, c, d, e].find((x) => x.error);
+    if (firstErr) setErr(firstErr.error);
   }, []);
   useEffect(() => { if (user) load(); }, [user, load]);
 

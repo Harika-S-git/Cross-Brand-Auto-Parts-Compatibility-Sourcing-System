@@ -1,6 +1,7 @@
 // Seeds suppliers, vehicles, ~70 cross-brand parts (inconsistent naming on purpose), tiers,
 // stock, demo users and a few historical orders. Embeddings are computed per EMBEDDING_PROVIDER.
 import pg from 'pg';
+import { pgConfig } from '../lib/dbConfig.js';
 import bcrypt from 'bcryptjs';
 import { embed, toPgVector, buildPartText } from '../lib/embed.js';
 
@@ -64,7 +65,7 @@ const styles = [
 const pnPrefix = [() => `${rint(10000, 99999)}-R${letters(2)}-A0${rint(1, 9)}`, () => `0 ${rint(100, 999)} ${rint(100, 999)} ${rint(100, 999)}`,
   () => `${rint(100, 999)}-${rint(1000, 9999)}`, () => `VA${rint(100000, 999999)}`, () => `UM-${letters(3)}${rint(100, 999)}`, () => `QF${rint(1000, 9999)}${letters(1)}`];
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new pg.Pool(pgConfig());
 const client = await pool.connect();
 try {
   await client.query('BEGIN');

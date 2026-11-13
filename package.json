@@ -8,6 +8,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "env:init": "node scripts/init-env.mjs",
+    "db:check": "node --env-file=.env.local scripts/check-db.mjs",
     "db:setup": "node --env-file=.env.local scripts/setup-db.mjs",
     "db:seed": "node --env-file=.env.local scripts/seed.mjs",
     "db:reset": "npm run db:setup && npm run db:seed",

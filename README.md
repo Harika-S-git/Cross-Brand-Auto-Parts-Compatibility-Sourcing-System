@@ -24,19 +24,34 @@ The system embeds the query and semantically matches it against part description
 
 ## Setup
 ```bash
-git clone <your-repo-url> && cd autoparts-sourcing
+cd autoparts-sourcing
 npm install
 
-cp .env.example .env.local        # Windows: copy .env.example .env.local
-#  edit .env.local -> set DATABASE_URL (and a long random JWT_SECRET)
+# 1) create .env.local  (pass YOUR PostgreSQL password - special characters like @ # / are handled)
+npm run env:init -- YOUR_POSTGRES_PASSWORD        # e.g. npm run env:init -- postgres
+#    (or copy .env.example to .env.local and edit DATABASE_URL by hand)
 
-npm run db:setup                  # creates tables, indexes, functions, triggers, views (db/*.sql)
+npm run db:setup                  # creates the database if missing + tables, indexes, functions, triggers, views
 npm run db:seed                   # demo suppliers, vehicles, ~80 parts + embeddings, users, orders
-npm run dev                       # http://localhost:3000
+npm run db:check                  # optional: verifies config, connection, pgvector, tables and data
+npm run dev                       # http://localhost:3000  (use: npx next dev -p 3001 for another port)
 ```
 The first seed/search downloads the ~23 MB embedding model once (needs internet) and caches it.
 If you are offline, set `EMBEDDING_PROVIDER=hash` in `.env.local` (lightweight fallback), then re-run `npm run db:seed`.
-**If you change `EMBEDDING_PROVIDER`, re-seed** – stored vectors and query vectors must come from the same model.
+**If you change `EMBEDDING_PROVIDER`, re-seed** - stored vectors and query vectors must come from the same model.
+**After editing `.env.local`, restart `npm run dev`** - environment variables are read only at start-up.
+
+## Troubleshooting
+| Symptom | Cause / fix |
+|---|---|
+| "Internal server error" / `routine: 'auth_failed'` / code `28P01` | Wrong PostgreSQL password in `.env.local`. Use the password you set when installing PostgreSQL (the `postgres` user), run `npm run env:init -- <password> --force`, restart the dev server. `npm run db:check` tells you exactly what is wrong. |
+| "Cannot reach PostgreSQL" / `ECONNREFUSED` | PostgreSQL service is not running, or the port is not 5432 (edit `DATABASE_URL`). Windows: start the *postgresql-x64-NN* service in `services.msc`. |
+| "database ... does not exist" | Run `npm run db:setup` - it creates the database. |
+| "extension vector is not available" | pgvector is not installed - see Prerequisites (Docker image `pgvector/pgvector:pg16` is the easiest). |
+| "Database tables are missing" | Run `npm run db:reset`. |
+| Search says embedding model could not be loaded | No internet on first run. Set `EMBEDDING_PROVIDER=hash`, restart, `npm run db:seed`. |
+| Password contains `@ # / : ?` | Handled automatically by the URL parser; or set `DB_USER` / `DB_PASSWORD` / `DB_NAME` instead of `DATABASE_URL`. |
+| Logged in but bounced back to /login under `npm start` over plain http | Set `COOKIE_SECURE=false` in `.env.local`. |
 
 ### Demo accounts (password = `SEED_PASSWORD`, default `Passw0rd!`)
 | Role | Email | Can do |
@@ -62,8 +77,9 @@ db/01_schema.sql                  DDL: tables, constraints, indexes (HNSW, GIN)
 db/02_functions_triggers_views.sql  rank_matches(), get_unit_price(), triggers, views
 db/03_alter_demo.sql              ALTER / DROP demonstrations
 db/queries.sql                    important queries & transaction demo
-scripts/setup-db.mjs, seed.mjs    schema runner, data + embedding seeder
-lib/                              db pool, embeddings, auth (JWT), query parser, helpers
+scripts/setup-db.mjs, seed.mjs    schema runner (auto-creates DB), data + embedding seeder
+scripts/check-db.mjs, init-env.mjs  setup diagnostics, .env.local generator
+lib/                              db pool + config, embeddings, auth (JWT), query parser, helpers
 app/api/**                        Route Handlers (auth, search, orders, staff/*)
 app/**/page.js                    UI: login, register, search & order, my orders, staff dashboard
 tests/                            node:test suites (database + API)

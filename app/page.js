@@ -17,18 +17,20 @@ export default function SearchPage() {
   const [cart, setCart] = useState([]);          // [{part, qty}]
   const [msg, setMsg] = useState('');
 
-  useEffect(() => { if (user) fetch('/api/meta').then((r) => r.json()).then(setMeta); }, [user]);
+  useEffect(() => { if (user) fetch('/api/meta').then((r) => r.json()).then((d) => setMeta((m) => ({ ...m, vehicles: d.vehicles || m.vehicles }))).catch(() => {}); }, [user]);
   useEffect(() => {
     if (!user) return;
-    fetch(`/api/meta${vehicleId ? `?vehicleId=${vehicleId}` : ''}`).then((r) => r.json()).then((d) => setMeta((m) => ({ ...m, summary: d.summary })));
+    fetch(`/api/meta${vehicleId ? `?vehicleId=${vehicleId}` : ''}`).then((r) => r.json()).then((d) => setMeta((m) => ({ ...m, summary: d.summary ?? null }))).catch(() => {});
   }, [vehicleId, user]);
 
   const search = async (keepMsg = false) => {
     setBusy(true); setErr(''); if (keepMsg !== true) setMsg('');
-    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}${vehicleId ? `&vehicleId=${vehicleId}` : ''}`);
-    const d = await r.json();
-    setBusy(false);
-    if (!r.ok) { setErr(d.error); setData(null); } else setData(d);
+    try {
+      const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}${vehicleId ? `&vehicleId=${vehicleId}` : ''}`);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(d.error || `Search failed (HTTP ${r.status})`); setData(null); } else setData(d);
+    } catch { setErr('Cannot reach the server. Is `npm run dev` still running?'); setData(null); }
+    finally { setBusy(false); }
   };
   const addToCart = (part) => setCart((c) => c.some((x) => x.part.part_id === part.part_id) ? c : [...c, { part, qty: 1 }]);
   const setQty = (id, qty) => setCart((c) => c.map((x) => (x.part.part_id === id ? { ...x, qty: Math.max(1, Math.min(1000, Number(qty) || 1)) } : x)));
@@ -37,11 +39,13 @@ export default function SearchPage() {
 
   const order = async () => {
     setErr(''); setMsg('');
-    const r = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart.map((x) => ({ partId: x.part.part_id, quantity: x.qty })) }) });
-    const d = await r.json();
-    if (!r.ok) return setErr(d.error);
-    setMsg(`Order #${d.orderId} placed — ${d.lines} line(s), total ${inr(d.total)}`); setCart([]); search(true);
+    try {
+      const r = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cart.map((x) => ({ partId: x.part.part_id, quantity: x.qty })) }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return setErr(d.error || `Order failed (HTTP ${r.status})`);
+      setMsg(`Order #${d.orderId} placed — ${d.lines} line(s), total ${inr(d.total)}`); setCart([]); search(true);
+    } catch { setErr('Cannot reach the server. Is `npm run dev` still running?'); }
   };
 
   if (!user) return null;
